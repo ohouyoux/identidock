@@ -1,0 +1,14 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Hello World</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+</head>
+<body>
+	<h1>Result</h1>
+    <p th:text="'Hello ' + ${greeting.name}" />
+    <img th:src="@{'data:image/png;base64,' + ${greeting.icon}}" />
+    <br/>
+    <a href="/greeting">Submit another message</a>
+</body>
+</html>

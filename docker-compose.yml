@@ -1,0 +1,123 @@
+version: "2"
+services:
+    identidock:
+        build: .
+        container_name: identidock
+
+        # Stop attackers from being able to write to file makes their life harder
+        read_only: true
+
+        # Limit the capabilities of the containers as much as we can
+        cap_drop:
+            - ALL
+
+        # Limit memory usage to protect against DoS attacks
+        # mem_limit: 512m (does not work with docker-maven-plugin yet)
+        mem_limit: 524288000
+
+        ulimits:
+            # Limit the maximum number of processes that the 'identidock' USER can
+            # create (not set for this very container but rather for the user of
+            # this container accross all processes)
+            nproc: 20
+
+            # Limit the maximum number of file descriptors that can be opened by
+            # the container (DoS attack)
+            nofile:
+                soft: 20
+                hard: 40
+
+        # Limit CPU usage to protect agains DoS attacks
+        cpu_shares: 512
+
+        # Limit restart on failure to avoid wasting large amount of resources
+        # (DoS attack)
+        restart: "on-failure:3"
+
+        ports:
+            - "8080:8080"
+        environment:
+            ENV: DEV
+        
+        links:
+            - dnmonster
+            - redis
+        
+        depends_on:
+            - dnmonster
+            - redis
+
+    dnmonster:
+        image: amouat/dnmonster:1.0
+        container_name: dnmonster
+        hostname: dnmonster
+
+        # Stop attackers from being able to write to file makes their life harder
+        read_only: true
+
+        # Limit the capabilities of the containers as much as we can
+        cap_drop:
+            - ALL
+
+        # Limit memory usage to protect against DoS attacks
+        # mem_limit: 128m (does not work with docker-maven-plugin yet)
+        mem_limit: 131072000
+
+        ulimits:
+            # Limit the maximum number of file descriptors that can be opened by
+            # the container (DoS attack)
+            nofile:
+                soft: 20
+                hard: 40
+
+        # Limit CPU usage to protect agains DoS attacks
+        cpu_shares: 256
+
+        # Limit restart on failure to avoid wasting large amount of resources
+        # (DoS attack)
+        restart: "on-failure:3"
+
+    redis:
+        image: redis:3.0
+        container_name: redis
+        hostname: redis
+
+        # Stop attackers from being able to write to file makes their life harder
+        read_only: true
+
+        ulimits:
+            # Limit the maximum number of file descriptors that can be opened by
+            # the container (DoS attack)
+            nofile:
+                soft: 40
+                hard: 80
+
+        # Limit the capabilities of the containers as much as we can
+        # Find out what capabailities Redis needs and filter them accordingly
+        # http://man7.org/linux/man-pages/man7/capabilities.7.html
+    #    cap_drop:
+    #        - ALL
+
+        command: redis-server --appendonly yes
+
+        # If the application needs to write to out files and won't operate in a read
+        # only environment, you can find the specific folders and files and use
+        # volumes to only mount those files with read / write access
+        volumes:
+            # TODO understand where the volume is created on the host and container
+            - redis-data:/tmp/cache:rw
+
+        # Limit memory usage to protect against DoS attacks
+        # mem_limit: 32m (does not work with docker-maven-plugin yet)
+        mem_limit: 32768000
+
+        # Limit CPU usage to protect agains DoS attacks
+        cpu_shares: 256
+
+        # Limit restart on failure to avoid wasting large amount of resources
+        # (DoS attack)
+        restart: "on-failure:3"
+
+volumes:
+    redis-data:
+        driver: local
